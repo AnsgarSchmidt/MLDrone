@@ -1,5 +1,6 @@
 import pyzbar.pyzbar as     pyzbar
 import numpy         as     np
+from   queue         import LifoQueue
 import threading
 import time
 import cv2
@@ -9,28 +10,62 @@ BEST_SIZE_DELTA =   50
 POSITION_DELTA  =  100
 IMAGE_WIDTH     = 1920
 IMAGE_HEIGHT    = 1080
-DEBUG           = True
+DEBUG           = False
 
-class QRmanager(threading.Thread):
+
+class Framegrabber(threading.Thread):
 
     def __init__(self):
-        print("INIT")
-        super(QRmanager, self).__init__()
+        super(Framegrabber, self).__init__()
         self.setDaemon(True)
+        self._shouldrun = False
         self._cap = cv2.VideoCapture(0)
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH,  IMAGE_WIDTH  )
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_HEIGHT )
         self._cap.set(cv2.CAP_PROP_AUTOFOCUS,    0            )
-        self._qrvalue   = None
-        self._qrcenterx = 0
-        self._qrcentery = 0
-        self._qrsize    = 0
-        self._qrupdate  = 0
+        self._cap.set(cv2.CAP_PROP_BUFFERSIZE,   1            )
+        self._queue = LifoQueue(maxsize = 2)
+
+    def run(self):
+        self._shouldrun = True
+
+        while self._shouldrun:
+            ret, image = self._cap.read()
+            if ret:
+                self._queue.put(image)
+                if DEBUG:
+                    cv2.imwrite("../../debugimages/test-%08d.png" % time.time(), image)
+
+    def stop(self):
+        self._shouldrun = False       
+
+    def getImage(self):
+        if self._queue.qsize() > 0:
+            rim = self._queue.get()
+
+            while not self._queue.empty():
+                self._queue.get()
+
+            return rim
+        else:
+            return None
+
+
+class QRmanager(threading.Thread):
+
+    def __init__(self):
+        super(QRmanager, self).__init__()
+        self.setDaemon(True)
+        self._shouldrun    = False
+        self._qrvalue      = None
+        self._qrcenterx    = 0
+        self._qrcentery    = 0
+        self._qrsize       = 0
+        self._qrupdate     = 0
+        self._framegrabber = Framegrabber()
 
     def _decode(self, image):
         decodedObjects = pyzbar.decode(image)
-        if DEBUG:
-            cv2.imwrite("../../debugimages/test-%08d.png" % time.time(), image)
 
         for obj in decodedObjects:
         
@@ -86,17 +121,28 @@ class QRmanager(threading.Thread):
         else:
             return None
 
+    def stop(self):
+        self._shouldrun = False       
+        self._framegrabber.stop()
+
     def run(self):
 
-        while True:
-            ret, image = self._cap.read()
+        self._framegrabber.start()
+        self._shouldrun = True
+        time.sleep(5)
 
-            if ret:
+        while self._shouldrun:
+            image = self._framegrabber.getImage()
+
+            if image is not None:
                 value, size, cx, cy = self._decode(image)
-
+    
                 if value and size and cx and cy:
                     self._qrvalue = value
                     self._qrsize  = size
                     self._qrcenterx = cx
                     self._qrcentery = cy
                     self._qrupdate  = time.time()
+
+        self._cap.release()
+        print("ENDE")
