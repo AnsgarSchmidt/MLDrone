@@ -12,7 +12,7 @@ __email__ = "alduxvm@gmail.com"
 __status__ = "Development"
 
 
-import serial, time, struct
+import serial, time, struct, sys, binascii
 
 
 class MultiWii:
@@ -102,10 +102,11 @@ class MultiWii:
         checksum = 0
         total_data = [b'$', b'M', b'<', data_length, code] + data
         for i in struct.pack('<2B%dH' % len(data), *total_data[3:len(total_data)]):
-            checksum = checksum ^ i
+            if sys.version_info[0] < 3:
+                checksum = checksum ^ ord(i)
+            else:
+                checksum = checksum ^ i
         total_data.append(checksum)
-        print(total_data)
-
         try:
             self.ser.write(struct.pack('<3c2B%dHB' % len(data), *total_data))
         except Exception as error:
@@ -171,7 +172,7 @@ class MultiWii:
         start = time.time()
         while timer < 0.5:
             data = [1500,1500,2000,1000]
-            self.sendCMD(8,MultiWii.SET_RAW_RC,data)
+            self.sendCMD(8, MultiWii.SET_RAW_RC, data)
             time.sleep(0.05)
             timer = timer + (time.time() - start)
             start =  time.time()
@@ -199,19 +200,22 @@ class MultiWii:
     def getData(self, cmd):
         try:
             start = time.time()
-            self.sendCMD(0,cmd,[])
+            self.sendCMD(0, cmd, [])
+
             while True:
                 header = self.ser.read()
-                if header == '$':
-                    header = header+self.ser.read(2)
+                if header == b'$':
+                    header = header + self.ser.read(2)
                     break
+            
             datalength = struct.unpack('<b', self.ser.read())[0]
-            code = struct.unpack('<b', self.ser.read())
-            data = self.ser.read(datalength)
-            temp = struct.unpack('<'+'h'*(datalength/2),data)
+            code       = struct.unpack('<b', self.ser.read())
+            data       = self.ser.read(datalength)
+            temp       = struct.unpack('<'+'h'*(datalength/2),data)
             self.ser.flushInput()
             self.ser.flushOutput()
             elapsed = time.time() - start
+            
             if cmd == MultiWii.ATTITUDE:
                 self.attitude['angx']=float(temp[0]/10.0)
                 self.attitude['angy']=float(temp[1]/10.0)
