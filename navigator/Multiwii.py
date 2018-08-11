@@ -100,17 +100,17 @@ class MultiWii:
     """Function for sending a command to the board"""
     def sendCMD(self, data_length, code, data):
         checksum = 0
-        total_data = ['$', 'M', '<', data_length, code] + data
+        total_data = [b'$', b'M', b'<', data_length, code] + data
         for i in struct.pack('<2B%dH' % len(data), *total_data[3:len(total_data)]):
-            checksum = checksum ^ ord(i)
+            checksum = checksum ^ i
         total_data.append(checksum)
+        print(total_data)
+
         try:
-            b = None
-            b = self.ser.write(struct.pack('<3c2B%dHB' % len(data), *total_data))
+            self.ser.write(struct.pack('<3c2B%dHB' % len(data), *total_data))
         except Exception as error:
-            #print ("\n\nError in sendCMD.")
-            #print ("("+str(error)+")\n\n")
-            pass
+            print ("\n\nError in sendCMD.")
+            print ("("+str(error)+")\n\n")
 
     """Function for sending a command to the board and receive attitude"""
     """
@@ -152,9 +152,8 @@ class MultiWii:
             self.attitude['timestamp']="%0.2f" % (time.time(),) 
             return self.attitude
         except Exception as error:
-            #print ("\n\nError in sendCMDreceiveATT.")
-            #print ("("+str(error)+")\n\n")
-            pass
+            print ("\n\nError in sendCMDreceiveATT.")
+            print ("("+str(error)+")\n\n")
 
     """Function to arm / disarm """
     """
@@ -278,8 +277,7 @@ class MultiWii:
             else:
                 return "No return error!"
         except Exception as error:
-            #print (error)
-            pass
+            print (error)
 
     """Function to receive a data packet from the board. Note: easier to use on threads"""
     def getDataInf(self, cmd):
@@ -329,7 +327,7 @@ class MultiWii:
                     self.motor['elapsed']="%0.3f" % (elapsed,)
                     self.motor['timestamp']="%0.2f" % (time.time(),)
             except Exception as error:
-                pass
+                print(error)
 
     """Function to ask for 2 fixed cmds, attitude and rc channels, and receive them. Note: is a bit slower than others"""
     def getData2cmd(self, cmd):
