@@ -19,15 +19,15 @@ class Framegrabber(threading.Thread):
         super(Framegrabber, self).__init__()
         self.setDaemon(True)
         self._shouldrun = False
+        self._queue = LifoQueue(maxsize = 2)
+
+    def run(self):
+        self._shouldrun = True
         self._cap = cv2.VideoCapture(0)
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH,  IMAGE_WIDTH  )
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_HEIGHT )
         self._cap.set(cv2.CAP_PROP_AUTOFOCUS,    0            )
         self._cap.set(cv2.CAP_PROP_BUFFERSIZE,   1            )
-        self._queue = LifoQueue(maxsize = 2)
-
-    def run(self):
-        self._shouldrun = True
 
         while self._shouldrun:
             ret, image = self._cap.read()
@@ -35,6 +35,8 @@ class Framegrabber(threading.Thread):
                 self._queue.put(image)
                 if DEBUG:
                     cv2.imwrite("../../debugimages/test-%08d.png" % time.time(), image)
+
+        self._cap.release()
 
     def stop(self):
         self._shouldrun = False       
@@ -144,5 +146,4 @@ class QRmanager(threading.Thread):
                     self._qrcentery = cy
                     self._qrupdate  = time.time()
 
-        self._cap.release()
         print("ENDE")
