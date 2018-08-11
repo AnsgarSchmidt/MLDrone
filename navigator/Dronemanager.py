@@ -1,5 +1,5 @@
-from pymultiwii import MultiWii
-from sys import stdout
+from   Multiwii import MultiWii
+from   sys      import stdout
 import time
 
 MAX_POWER      = 1999
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         time.sleep(1)
         board.disarm()
         time.sleep(1)
-    except Exception, error:        
-        print "Error on Main: "+str(error)
+    except Exception as error:        
+        print ("Error on Main: " + str(error))
         board.disarm()
         time.sleep(1)
