@@ -1,6 +1,11 @@
-from pymultiwii import MultiWii
+from pywultiwii import MultiWii
+from sys import stdout
 
-serialPort = "/dev/ttyUSB0"
-board = MultiWii(serialPort)
-while True:
-  print board.getData(MultiWii.ATTITUDE)
+if __name__ == "__main__":
+    board = MultiWii("/dev/ttyUSB0")
+    try:
+        while True:
+            board.getData(MultiWii.ATTITUDE)
+            print board.attitude 
+    except Exception,error:
+        print "Error on Main: "+str(error)
