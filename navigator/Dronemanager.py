@@ -3,10 +3,10 @@ from   sys      import stdout
 import time
 
 MAX_POWER      = 1999
-CENTER_X       = 2.5      # bigger -> right
-CENTER_Y       = -3.8   # bigger -> forkward
+CENTER_X       = 0      # bigger -> right
+CENTER_Y       = -6.2     # bigger -> forkward
 ALPHA          = 1
-MAX_CORRECTION = 50
+MAX_CORRECTION = 100
 
 if __name__ == "__main__":
     board = MultiWii("/dev/ttyUSB0")
